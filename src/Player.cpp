@@ -1,7 +1,7 @@
 #include <Player.h>
 
-Player::Player(b2World* world, SDL_Renderer* renderer, const char* texPath, int pNum):
-        GameObject(world, renderer, texPath, b2Shape::Type::e_circle, b2Vec2(0.7f, 1.0f), {}, 1.0f)
+Player::Player(Game* game, const char* texPath, int pNum):
+        GameObject(game, texPath, b2Shape::Type::e_circle, b2Vec2(0.7f, 1.0f), {})
 {
     playerNum = pNum;
 
@@ -9,7 +9,7 @@ Player::Player(b2World* world, SDL_Renderer* renderer, const char* texPath, int 
 
     body->SetTransform(startPositions[pNum], 0);
 
-    foot = new GameObject(world, renderer, "../assets/shoe.png", b2Shape::e_polygon, b2Vec2(0.7f, 0.7f), footVertices[pNum]);
+    foot = new GameObject(game, "../assets/shoe.png", b2Shape::e_polygon, b2Vec2(0.7f, 0.7f), footVertices[pNum]);
     foot->body->GetFixtureList()->SetRestitution(0.0f);
     foot->body->GetFixtureList()->SetDensity(0.1f);
     foot->body->ResetMassData();

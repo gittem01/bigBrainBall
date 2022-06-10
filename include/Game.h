@@ -1,12 +1,15 @@
+#pragma once
+
 #include <Player.h>
+#include <Ball.h>
 #include <SDL_ttf.h>
 #include <string.h>
 #include <stdio.h>
+#include <iostream>
 #include <stdlib.h>
 #include <chrono>
 
 #define MAX_NUM 1000
-#define TRAIL_SIZE 200
 
 typedef struct Rect{
     float x;
@@ -26,11 +29,11 @@ private:
     CharTex* dash;
     CharTex numbers[MAX_NUM];
     SDL_Texture* bg;
-    SDL_Texture* trail;
 
 public:
     SDL_Window* window;
     SDL_Renderer* renderer;
+    float dpiScaling;
 
     b2World* world;
     SDL_Event event;
@@ -38,7 +41,7 @@ public:
 
     std::vector<SDL_Joystick*> joysticks;
 
-    GameObject* ball;
+    Ball* ball;
     GameObject* goal1;
     GameObject* goal2;
 
@@ -48,22 +51,22 @@ public:
     Rect goalRects[2];
     Rect topRects[2];
 
-    bool isGoal = false;
-    float goalTimer = 0.0f;
     float timeMult = 1.0f;
 
     float lastTime;
     float deltaTime;
-    long lastTrailTime;
-
-    b2Vec2 ballTrail[TRAIL_SIZE];
-    int ballTrailIndex = 0;
 
     Game(){
         SDL_Init(SDL_INIT_JOYSTICK | SDL_INIT_VIDEO);
 
         window = SDL_CreateWindow("Big Brain Ball", 0, 0, 1423, 768, SDL_WINDOW_ALLOW_HIGHDPI | SDL_WINDOW_RESIZABLE);
         renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_PRESENTVSYNC);
+
+        int x1, y1, x2, y2;
+        SDL_GetWindowSize(window, &x1, &y1);
+        SDL_GL_GetDrawableSize(window, &x2, &y2);
+
+        dpiScaling = x2 / (float)x1;
 
         SDL_InitSubSystem(SDL_INIT_JOYSTICK);
         for (int i = 0; i < SDL_NumJoysticks(); i++){
@@ -100,16 +103,13 @@ public:
         dash->texture = SDL_CreateTextureFromSurface(renderer, dashSurface);
 
         keys = (int*)calloc(SDL_NUM_SCANCODES, sizeof(int));
-        for (int i = 0; i < TRAIL_SIZE; i++){
-            ballTrail[i] = b2Vec2(-10, -10);
-        }
 
-        goal1 = new GameObject(world, renderer, "../assets/goal.png", b2Shape::e_typeCount, b2Vec2(1.75f, 2.25f));
+        goal1 = new GameObject(this, "../assets/goal.png", b2Shape::e_typeCount, b2Vec2(1.75f, 2.25f));
         GameObject::gameObjects.erase(GameObject::gameObjects.end() - 1);
         goal1->position.x = 28.46 - 1.5f;
         goal1->position.y = 12.1f;
 
-        goal2 = new GameObject(world, renderer, "../assets/goal.png", b2Shape::e_typeCount, b2Vec2(1.75f, 2.25f));
+        goal2 = new GameObject(this, "../assets/goal.png", b2Shape::e_typeCount, b2Vec2(1.75f, 2.25f));
         GameObject::gameObjects.erase(GameObject::gameObjects.end() - 1);
         goal2->flip = SDL_FLIP_HORIZONTAL;
         goal2->position.x = 1.5f;
@@ -128,31 +128,17 @@ public:
         SDL_Surface* s = IMG_Load("../assets/field.png");
         bg = SDL_CreateTextureFromSurface(renderer, s);
 
-        s = IMG_Load("../assets/trail.png");
-        trail = SDL_CreateTextureFromSurface(renderer, s);
-
         createWorld();
 
-        player1 = new Player(world, renderer, "../assets/head.png", 0);
+        player1 = new Player(this, "../assets/head.png", 0);
         player1->body->SetFixedRotation(true);
         player1->setKeys(keys);
 
-        player2 = new Player(world, renderer, "../assets/head.png", 1);
+        player2 = new Player(this, "../assets/head.png", 1);
         player2->body->SetFixedRotation(true);
         player2->setKeys(keys);
 
-        ball = new GameObject(world, renderer, "../assets/footer.png", b2Shape::e_circle, b2Vec2(0.3f, 1.0f), {}, 1.0f);
-        ball->body->SetTransform(b2Vec2(14, 7), 0);
-        ball->body->SetLinearVelocity(b2Vec2(rand() % 20 - 10, -rand() % 10 - 5));
-        ball->body->SetAngularVelocity((rand() % 100) / 20.0f);
-        ball->body->SetLinearDamping(0.2f);
-        ball->body->GetFixtureList()->SetRestitution(0.75f);
-        ball->body->GetFixtureList()->SetFriction(0.5f);
-        ball->body->SetBullet(true);
-        b2Filter filter;
-        filter.categoryBits = C4;
-        filter.maskBits = C1 | C2 | C3 | C4;
-        ball->body->GetFixtureList()->SetFilterData(filter);
+        ball = new Ball(this);
 
         topRects[0].x = 0.0f;
         topRects[0].y = 9.9f - ((b2CircleShape*)ball->body->GetFixtureList()->GetShape())->m_radius * 2;
@@ -166,7 +152,6 @@ public:
 
         lastTime = 0.0f;
         deltaTime = 0.0f;
-        lastTrailTime = 0;
     }
 
     void createWorld(){
@@ -268,34 +253,9 @@ public:
         return 0;
     }
 
-    // 0 for p1 goal enter, 1 for p2 goal enter
-    // 1 left, 0 right goal
-    int checkBallGoal(){
-        b2Vec2 bPos = ball->body->GetPosition();
-        if (pointInRect(goalRects[0], bPos))
-        {
-            return 1;
-        }
-        else if (pointInRect(goalRects[1], bPos))
-        {
-            return 0;
-        }
-
-        return -1;
-    }
-
     void loop(){
         deltaTime = SDL_GetTicks() / 1000.0f - lastTime;
-
         lastTime = SDL_GetTicks() / 1000.0f;
-
-        b2Vec2 p = ball->body->GetPosition();
-        if (pointInRect(topRects[0], p) && abs(ball->body->GetAngularVelocity()) < 1.0f){
-            ball->body->SetAngularVelocity(2 * b2_pi);
-        }
-        else if (pointInRect(topRects[1], p) && abs(ball->body->GetAngularVelocity()) < 1.0f){
-            ball->body->SetAngularVelocity(-2 * b2_pi);
-        }
 
         for (int i = 0; i < SDL_NUM_SCANCODES; i++){
             if (keys[i] == 2) keys[i] = 1;
@@ -305,46 +265,11 @@ public:
         for (int i = 0; i < extraSteps; i++){
             world->Step(deltaTime / (extraSteps * timeMult), 8, 3);
             handleEvents();
-            if (!isGoal){
+            if (!ball->isGoal){
                 player1->handle();
                 player2->handle();
             }
-            long t = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
-            if (t - lastTrailTime > 5 * timeMult * timeMult){
-                lastTrailTime = t;
-                ballTrail[ballTrailIndex] = ball->body->GetPosition();
-                ballTrailIndex = (ballTrailIndex + 1) % TRAIL_SIZE;
-            }
-
-            int ballStat = checkBallGoal();
-            if (ballStat != -1 && !isGoal){
-                if (ballStat == 0){
-                    player1->score++;
-                }
-                else if (ballStat == 1){
-                    player2->score++;
-                }
-                
-                isGoal = true;
-                goalTimer = SDL_GetTicks();
-                timeMult = 8.0f;
-            }
-        }
-
-        if (isGoal && SDL_GetTicks() - goalTimer > 2000){
-            isGoal = false;
-            timeMult = 1.0f;
-            ball->body->SetTransform(b2Vec2(14, 7), 0);
-            ball->body->SetLinearVelocity(b2Vec2(rand() % 20 - 10, -rand() % 10 - 5));
-            ball->body->SetAngularVelocity((rand() % 100) / 20.0f);
-
-            player1->body->SetTransform(player1->startPositions[player1->playerNum], 0);
-            player1->body->SetLinearVelocity(b2Vec2(0, 0));
-            player2->body->SetTransform(player2->startPositions[player2->playerNum], 0);
-            player2->body->SetLinearVelocity(b2Vec2(0, 0));
-
-            player1->setFoot();
-            player2->setFoot();
+            ball->check();
         }
 
         SDL_RenderClear(renderer);
@@ -367,17 +292,14 @@ public:
         dest.h = dash->surface->h;
         SDL_RenderCopy(renderer, dash->texture, NULL, &dest);
 
-        for (int i = 0; i < TRAIL_SIZE; i++){
-            int p = (ballTrailIndex + i) % TRAIL_SIZE;
-            int w = i / (TRAIL_SIZE / 50);
-            int h = i / (TRAIL_SIZE / 50);
-            SDL_Rect trailRect = { (int)(ballTrail[p].x * 100 - w / 2), (int)(ballTrail[p].y * 100 - h / 2), w, h };
-            SDL_RenderCopy(renderer, trail, NULL, &trailRect);
-        }
+        ball->trailRender();
 
         for (GameObject* go : GameObject::gameObjects){
             go->render();
         }
+
+        ball->render();
+        
         goal1->render();
         goal2->render();
 

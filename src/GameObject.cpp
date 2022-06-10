@@ -1,12 +1,15 @@
 #include <GameObject.h>
+#include <Game.h>
 
 std::vector<GameObject*> GameObject::gameObjects;
 
-GameObject::GameObject( b2World* world, SDL_Renderer* renderer, const char* texPath,
-                        b2Shape::Type type, b2Vec2 scale, b2Vec2 vertices[8], float density)
+GameObject::GameObject( Game* game, const char* texPath,
+                        b2Shape::Type type, b2Vec2 scale, b2Vec2 vertices[8])
 {
-    this->world = world;
-    this->renderer = renderer;
+    this->game = game;
+    
+    this->world = game->world;
+    this->renderer = game->renderer;
 
     SDL_Surface* surface = IMG_Load(texPath);
     this->texture = SDL_CreateTextureFromSurface(renderer, surface);
@@ -20,14 +23,14 @@ GameObject::GameObject( b2World* world, SDL_Renderer* renderer, const char* texP
     flip = SDL_FLIP_NONE;
 
     if (type != b2Shape::e_typeCount){
-        createBody(scale, type, vertices, density);
+        createBody(scale, type, vertices);
         measureBody();
     }
 
     gameObjects.push_back(this);
 }
 
-void GameObject::createBody(b2Vec2 scale, b2Shape::Type type, b2Vec2 vertices[8], float density)
+void GameObject::createBody(b2Vec2 scale, b2Shape::Type type, b2Vec2 vertices[8])
 {
     b2BodyDef bodyDef;
     bodyDef.type = b2_dynamicBody;
@@ -52,7 +55,7 @@ void GameObject::createBody(b2Vec2 scale, b2Shape::Type type, b2Vec2 vertices[8]
     
     b2FixtureDef fixtureDef;
     fixtureDef.shape = shape;
-    fixtureDef.density = density;
+    fixtureDef.density = 1.0f;
     fixtureDef.friction = 0.0f;
     fixtureDef.restitution = 0.0f;
     fixtureDef.filter.categoryBits = C1;

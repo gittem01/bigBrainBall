@@ -1,3 +1,5 @@
+#pragma once
+
 #include <GameObject.h>
 
 class Game;
@@ -13,6 +15,7 @@ enum KeyIndices{
 class Player : public GameObject
 {
     friend class Game;
+    friend class Ball;
 
 private:
     int* keys;
@@ -46,7 +49,7 @@ private:
 public:
     int score = 0;
 
-    Player(b2World* world, SDL_Renderer* renderer, const char* texPath, int pNum);
+    Player(Game* game, const char* texPath, int pNum);
 
     void setFoot();
 
