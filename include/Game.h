@@ -285,6 +285,10 @@ public:
     }
 
     void loop(){
+        deltaTime = SDL_GetTicks() / 1000.0f - lastTime;
+
+        lastTime = SDL_GetTicks() / 1000.0f;
+
         b2Vec2 p = ball->body->GetPosition();
         if (pointInRect(topRects[0], p) && abs(ball->body->GetAngularVelocity()) < 1.0f){
             ball->body->SetAngularVelocity(2 * b2_pi);
@@ -292,7 +296,7 @@ public:
         else if (pointInRect(topRects[1], p) && abs(ball->body->GetAngularVelocity()) < 1.0f){
             ball->body->SetAngularVelocity(-2 * b2_pi);
         }
-        lastTime = SDL_GetTicks() / 1000.0f;
+
         for (int i = 0; i < SDL_NUM_SCANCODES; i++){
             if (keys[i] == 2) keys[i] = 1;
         }
@@ -378,7 +382,5 @@ public:
         goal2->render();
 
         SDL_RenderPresent(renderer);
-
-        deltaTime = SDL_GetTicks() / 1000.0f - lastTime;
     }
 };
