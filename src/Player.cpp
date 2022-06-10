@@ -1,7 +1,7 @@
 #include <Player.h>
 
 Player::Player(b2World* world, SDL_Renderer* renderer, const char* texPath, int pNum):
-        GameObject(world, renderer, texPath, b2Shape::Type::e_circle, b2Vec2(0.7f, 1.0f), {}, 10.0f)
+        GameObject(world, renderer, texPath, b2Shape::Type::e_circle, b2Vec2(0.7f, 1.0f), {}, 1.0f)
 {
     playerNum = pNum;
 
@@ -11,6 +11,8 @@ Player::Player(b2World* world, SDL_Renderer* renderer, const char* texPath, int 
 
     foot = new GameObject(world, renderer, "../assets/shoe.png", b2Shape::e_polygon, b2Vec2(0.7f, 0.7f), footVertices[pNum]);
     foot->body->GetFixtureList()->SetRestitution(0.0f);
+    foot->body->GetFixtureList()->SetDensity(0.1f);
+    foot->body->ResetMassData();
     foot->flip = (SDL_RendererFlip)((int)(isFlipped[pNum]) | ((int)flip));
 
     b2Filter filter;
@@ -28,13 +30,14 @@ void Player::setFoot(){
     if (j){
         world->DestroyJoint(j);
     }
+    
     foot->body->SetTransform(b2Vec2(body->GetPosition().x + footInc[playerNum], body->GetPosition().y + 0.5f), 0);
 
     b2RevoluteJointDef jDef;
     jDef.upperAngle = footLimits[playerNum][0];
     jDef.lowerAngle = footLimits[playerNum][1];
     jDef.enableLimit = true;
-    jDef.maxMotorTorque = 50000;
+    jDef.maxMotorTorque = 10000000;
     jDef.enableMotor = true;
     jDef.Initialize(body, foot->body, body->GetPosition());
 
@@ -78,20 +81,16 @@ void Player::handle(){
     lastySpeed = lastVel.y;
 
     if (keys[playerKeys[playerNum][in_SPACE]]){
-        j->EnableMotor(true);
-        j->SetLimits(j->GetLowerLimit(), footLimits[playerNum][0]);
+        // releases the "tension?"
+        j->EnableLimit(!j->IsEnabled());
+        j->EnableLimit(true);
+
         j->SetMotorSpeed(20.0f * playerMultipliers[playerNum]);
     }
-    else{
-        if (abs(j->GetJointAngle() - j->GetLowerLimit()) < 0.001f || abs(j->GetJointAngle() - j->GetUpperLimit()) < 0.001f){
-            j->EnableMotor(false);
-            j->SetMotorSpeed(0.0f);
-            j->SetLimits(j->GetLowerLimit(), j->GetLowerLimit());
-        }
-        else {
-            j->EnableMotor(true);
-            j->SetLimits(j->GetLowerLimit(), footLimits[playerNum][0]);
-            j->SetMotorSpeed(-10.0f * playerMultipliers[playerNum]);
-        }
+    else if (!(abs(j->GetJointAngle() - footLimits[playerNum][playerNum ^ 1]) < 0.001f)){
+        j->EnableLimit(!j->IsEnabled());
+        j->EnableLimit(true);
+
+        j->SetMotorSpeed(-10.0f * playerMultipliers[playerNum]);
     }
 }

@@ -141,7 +141,7 @@ public:
         player2->body->SetFixedRotation(true);
         player2->setKeys(keys);
 
-        ball = new GameObject(world, renderer, "../assets/footer.png", b2Shape::e_circle, b2Vec2(0.3f, 1.0f), {}, 10.0f);
+        ball = new GameObject(world, renderer, "../assets/footer.png", b2Shape::e_circle, b2Vec2(0.3f, 1.0f), {}, 1.0f);
         ball->body->SetTransform(b2Vec2(14, 7), 0);
         ball->body->SetLinearVelocity(b2Vec2(rand() % 20 - 10, -rand() % 10 - 5));
         ball->body->SetAngularVelocity((rand() % 100) / 20.0f);
