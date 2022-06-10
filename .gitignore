@@ -1,0 +1,6 @@
+.vscode
+.idea
+.vs/
+*build*/
+.ds_store
+CMakeSettings.json
