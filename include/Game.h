@@ -263,17 +263,33 @@ public:
     static void* threadFunc(void* game){
         Game* g = (Game*)game;
         int extraSteps = 20;
+        int loopRepeat = 5;
+        long lastRunTime = -1;
+        int runCount = 1;
         while (1){
             g->exSem.acquire();
-            for (int i = 0; i < extraSteps; i++){
-                g->world->Step((1 / 60.0f) / (extraSteps * g->timeMult), 8, 3);
-                if (!g->ball->isGoal){
-                    g->player1->handle();
-                    g->player2->handle();
-                }
-                g->ball->check();
+            if (lastRunTime == -1){
+                lastRunTime = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
             }
-            g->bSem.release();
+            for (int i = 0; i < extraSteps; i++){
+                float dt = (1 / (60.0f * loopRepeat)) / (extraSteps * g->timeMult);
+                g->world->Step(dt, 8, 3);
+                if (!g->ball->isGoal){
+                    g->player1->handle(dt);
+                    g->player2->handle(dt);
+                }
+                g->ball->check(dt);
+            }
+            long now = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+            if (now - lastRunTime > 16666 || runCount > loopRepeat - 1){
+                lastRunTime = -1;
+                runCount = 1;
+                g->bSem.release();
+            }
+            else{
+                runCount++;
+                g->exSem.release();
+            }
         }
     }
 

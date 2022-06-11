@@ -21,6 +21,8 @@ Ball::Ball(Game* game) : GameObject(game, "../assets/footer.png", b2Shape::e_cir
     trail = SDL_CreateTextureFromSurface(renderer, s);
 
     GameObject::gameObjects.erase(GameObject::gameObjects.end() - 1);
+
+    lastTrailTime = 0;
 }
 
 // 0 for p1 goal enter, 1 for p2 goal enter
@@ -39,7 +41,7 @@ int Ball::checkBallGoal(){
     return -1;
 }
 
-void Ball::check(){
+void Ball::check(float dt){
     b2Vec2 p = body->GetPosition();
     if (game->pointInRect(game->topRects[0], p) && abs(body->GetAngularVelocity()) < 5.0f){
         body->SetAngularVelocity(+0.1f + body->GetAngularVelocity());
@@ -48,12 +50,30 @@ void Ball::check(){
         body->SetAngularVelocity(-0.1f + body->GetAngularVelocity());
     }
 
-    long t = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
-    if (t - lastTrailTime > 5 * game->timeMult * game->timeMult){
-        lastTrailTime = t;
-        ballTrail[ballTrailIndex] = body->GetPosition();
-        ballTrailIndex = (ballTrailIndex + 1) % TRAIL_SIZE;
+    lastTrailTime += dt;
+    b2Vec2 lastTrail;
+    if (ballTrailIndex == 0){
+        lastTrail = ballTrail[TRAIL_SIZE - 1];
     }
+    else {
+        lastTrail = ballTrail[ballTrailIndex - 1];
+    }
+    b2Vec2 currentPos = body->GetPosition();
+    b2Vec2 posDiff = currentPos - lastTrail;
+
+    float fVal = (lastTrailTime / everyT);
+    float inc = fVal / (int)fVal;
+    for (float i = inc; i < fVal; i+=inc){
+        ballTrail[ballTrailIndex] = lastTrail + (i / fVal) * posDiff;
+        ballTrailIndex = (ballTrailIndex + 1) % TRAIL_SIZE;
+        lastTrailTime = 0.0f;
+    }
+    if (fVal > 1 && fVal < 2){
+        ballTrail[ballTrailIndex] = currentPos;
+        ballTrailIndex = (ballTrailIndex + 1) % TRAIL_SIZE;
+        lastTrailTime = 0.0f;
+    }
+    
 
     int ballStat = checkBallGoal();
     if (ballStat != -1 && !isGoal){

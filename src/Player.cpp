@@ -37,7 +37,7 @@ void Player::setFoot(){
     jDef.upperAngle = footLimits[playerNum][0];
     jDef.lowerAngle = footLimits[playerNum][1];
     jDef.enableLimit = true;
-    jDef.maxMotorTorque = 10000000;
+    jDef.maxMotorTorque = 400;
     jDef.enableMotor = true;
     jDef.Initialize(body, foot->body, body->GetPosition());
 
@@ -48,20 +48,20 @@ void Player::setKeys(int* keys){
     this->keys = keys;
 }
 
-void Player::handle(){
+void Player::handle(float dt){
     b2Vec2 lastVel = body->GetLinearVelocity();
 
     bool pressed = false;
     if (keys[playerKeys[playerNum][in_RIGHT]]){
         pressed ^= true;
-        lastVel.x += 1.0f;
+        lastVel.x += 500.0f * dt;
     }
     if (keys[playerKeys[playerNum][in_LEFT]]){
         pressed ^= true;
-        lastVel.x -= 1.0f;
+        lastVel.x -= 500.0f * dt;
     }
 
-    if (keys[playerKeys[playerNum][in_UP]] && abs(lastVel.y - lastySpeed) < 0.0001f){
+    if (keys[playerKeys[playerNum][in_UP]] && abs(lastVel.y - lastySpeed) <= 0.000000001f){
         lastVel.y = -12.0f;
     }
 
@@ -73,7 +73,7 @@ void Player::handle(){
     }
 
     if (!pressed){
-        lastVel.x *= 0.98f;
+        lastVel.x *=  1.0f - 30.0f * dt;
     }
 
     body->SetLinearVelocity(lastVel);

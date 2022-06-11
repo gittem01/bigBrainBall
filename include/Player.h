@@ -55,5 +55,5 @@ public:
 
     void setKeys(int* keys);
 
-    void handle();
+    void handle(float dt);
 };
