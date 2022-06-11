@@ -9,6 +9,9 @@
 #include <iostream>
 #include <stdlib.h>
 #include <chrono>
+#include <thread>
+#include <pthread.h>
+#include <semaphore>
 
 #define MAX_NUM 1000
 
@@ -32,6 +35,10 @@ private:
     SDL_Texture* bg;
 
 public:
+    pthread_t thread;
+    std::binary_semaphore bSem{1};
+    std::binary_semaphore exSem{1};
+
     SDL_Window* window;
     SDL_Renderer* renderer;
     float dpiScaling;
@@ -54,8 +61,8 @@ public:
 
     float timeMult = 1.0f;
 
-    float lastTime;
-    float deltaTime;
+    long lastTimeP;
+    long deltaTimeP;
 
     Game(){
         SDL_Init(SDL_INIT_JOYSTICK | SDL_INIT_VIDEO);
@@ -151,8 +158,7 @@ public:
         topRects[1].w = 3.2f;
         topRects[1].h = ((b2CircleShape*)ball->body->GetFixtureList()->GetShape())->m_radius * 2;
 
-        lastTime = 0.0f;
-        deltaTime = 0.0f;
+        pthread_create(&thread, NULL, threadFunc, (void*)this);
     }
 
     void createWorld(){
@@ -254,24 +260,32 @@ public:
         return 0;
     }
 
+    static void* threadFunc(void* game){
+        Game* g = (Game*)game;
+        int extraSteps = 20;
+        while (1){
+            g->exSem.acquire();
+            for (int i = 0; i < extraSteps; i++){
+                g->world->Step((1 / 60.0f) / (extraSteps * g->timeMult), 8, 3);
+                if (!g->ball->isGoal){
+                    g->player1->handle();
+                    g->player2->handle();
+                }
+                g->ball->check();
+            }
+            g->bSem.release();
+        }
+    }
+
     void loop(){
-        deltaTime = SDL_GetTicks() / 1000.0f - lastTime;
-        lastTime = SDL_GetTicks() / 1000.0f;
+        deltaTimeP = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now().time_since_epoch()).count() - lastTimeP;
+        lastTimeP = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
 
         for (int i = 0; i < SDL_NUM_SCANCODES; i++){
             if (keys[i] == 2) keys[i] = 1;
         }
 
-        int extraSteps = 20;
-        for (int i = 0; i < extraSteps; i++){
-            world->Step(deltaTime / (extraSteps * timeMult), 8, 3);
-            handleEvents();
-            if (!ball->isGoal){
-                player1->handle();
-                player2->handle();
-            }
-            ball->check();
-        }
+        handleEvents();
 
         SDL_RenderClear(renderer);
 
@@ -294,7 +308,8 @@ public:
         SDL_RenderCopy(renderer, dash->texture, NULL, &dest);
 
         ball->trailRender();
-
+        
+        bSem.acquire();
         for (GameObject* go : GameObject::gameObjects){
             go->render();
         }
@@ -302,15 +317,19 @@ public:
         for (PowerUp* p : PowerUp::aliveUps){
             p->loop();
         }
-        for (PowerUp* p : PowerUp::destroyUps){
-            delete(p);
-        }
-        PowerUp::destroyUps.clear();
 
         ball->render();
         
         goal1->render();
         goal2->render();
+
+        for (PowerUp* p : PowerUp::destroyUps){
+            delete(p);
+        }
+
+        exSem.release();
+
+        PowerUp::destroyUps.clear();
 
         SDL_RenderPresent(renderer);
 	}

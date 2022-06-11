@@ -12,10 +12,10 @@ int main(void)
         powerUp->body->SetTransform(b2Vec2(rand() % 28, rand() % 28), 0);
     }
 
+    game->bSem.release();
+
     game->loop();
     SDL_Delay(100);
-    game->lastTime = SDL_GetTicks();
-    game->deltaTime = 0.0f;	
 
     while (1){
         game->loop();
