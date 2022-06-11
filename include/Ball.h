@@ -25,4 +25,6 @@ public:
 
     void trailRender();
     void check();
+
+    void startThrow();
 };

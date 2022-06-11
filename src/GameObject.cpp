@@ -8,11 +8,15 @@ GameObject::GameObject( Game* game, const char* texPath,
 {
     this->game = game;
     
-    this->world = game->world;
-    this->renderer = game->renderer;
+    world = game->world;
+    renderer = game->renderer;
 
+    // TODO : keep textures with the same name in the memory
+    // Do not load them over and over
     SDL_Surface* surface = IMG_Load(texPath);
-    this->texture = SDL_CreateTextureFromSurface(renderer, surface);
+    texture = SDL_CreateTextureFromSurface(renderer, surface);
+
+    SDL_FreeSurface(surface);
 
     sizex = scale.x;
     sizey = scale.y;
@@ -28,6 +32,19 @@ GameObject::GameObject( Game* game, const char* texPath,
     }
 
     gameObjects.push_back(this);
+}
+
+GameObject::~GameObject(){
+    for (int i = 0; i < GameObject::gameObjects.size(); i++){
+        if (GameObject::gameObjects[i] == this){
+            GameObject::gameObjects.erase(GameObject::gameObjects.begin() + i);
+            break;
+        }
+    }
+
+    world->DestroyBody(body);
+
+    SDL_DestroyTexture(texture);
 }
 
 void GameObject::createBody(b2Vec2 scale, b2Shape::Type type, b2Vec2 vertices[8])
@@ -107,10 +124,6 @@ void GameObject::render()
     }
     r.w = sizex * 200;
     r.h = sizey * 200;
-
-    SDL_Point point;
-    point.x = r.x + r.w / 2;
-    point.x = r.y + r.h / 2;
 
     SDL_RenderCopyEx(renderer, texture, NULL, &r, a * (180 / b2_pi), NULL, flip);
 }

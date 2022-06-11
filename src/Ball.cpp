@@ -3,9 +3,7 @@
 
 Ball::Ball(Game* game) : GameObject(game, "../assets/footer.png", b2Shape::e_circle, b2Vec2(0.3f, 1))
 {
-    body->SetTransform(b2Vec2(14, 7), 0);
-    body->SetLinearVelocity(b2Vec2(rand() % 20 - 10, -rand() % 10 - 5));
-    body->SetAngularVelocity((rand() % 100) / 20.0f);
+    startThrow();
     body->SetLinearDamping(0.2f);
     body->GetFixtureList()->SetRestitution(0.75f);
     body->GetFixtureList()->SetFriction(0.5f);
@@ -43,11 +41,11 @@ int Ball::checkBallGoal(){
 
 void Ball::check(){
     b2Vec2 p = body->GetPosition();
-    if (game->pointInRect(game->topRects[0], p) && abs(body->GetAngularVelocity()) < 1.0f){
-        body->SetAngularVelocity(2 * b2_pi);
+    if (game->pointInRect(game->topRects[0], p) && abs(body->GetAngularVelocity()) < 5.0f){
+        body->SetAngularVelocity(+0.1f + body->GetAngle());
     }
-    else if (game->pointInRect(game->topRects[1], p) && abs(body->GetAngularVelocity()) < 1.0f){
-        body->SetAngularVelocity(-2 * b2_pi);
+    else if (game->pointInRect(game->topRects[1], p) && abs(body->GetAngularVelocity()) < 5.0f){
+        body->SetAngularVelocity(-0.1f + body->GetAngle());
     }
 
     long t = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
@@ -74,18 +72,20 @@ void Ball::check(){
     if (isGoal && SDL_GetTicks() - goalTimer > 2000){
         isGoal = false;
         game->timeMult = 1.0f;
-        body->SetTransform(b2Vec2(14, 7), 0);
-        body->SetLinearVelocity(b2Vec2(rand() % 20 - 10, -rand() % 10 - 5));
-        body->SetAngularVelocity((rand() % 100) / 20.0f);
+        startThrow();
 
         game->player1->body->SetTransform(game->player1->startPositions[game->player1->playerNum], 0);
-        game->player1->body->SetLinearVelocity(b2Vec2(0, 0));
         game->player2->body->SetTransform(game->player2->startPositions[game->player2->playerNum], 0);
-        game->player2->body->SetLinearVelocity(b2Vec2(0, 0));
 
         game->player1->setFoot();
         game->player2->setFoot();
     }
+}
+
+void Ball::startThrow(){
+    body->SetTransform(b2Vec2(14, 7), 0);
+    body->SetLinearVelocity(b2Vec2(rand() % 20 - 10, -rand() % 10 - 5));
+    body->SetAngularVelocity((rand() % 100) / 20.0f);
 }
 
 void Ball::trailRender(){

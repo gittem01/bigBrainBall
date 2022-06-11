@@ -4,6 +4,7 @@
 #include <SDL.h>
 #include <SDL_image.h>
 #include <vector>
+#include <set>
 
 class Game;
 
@@ -36,6 +37,8 @@ public:
 
     GameObject( Game* game, const char* texPath,
                 b2Shape::Type type=b2Shape::e_circle, b2Vec2 scale=b2Vec2(1, 1), b2Vec2 vertices[8]={});
+
+    ~GameObject();
 
     void createBody(b2Vec2 scale, b2Shape::Type type, b2Vec2 vertices[8]);
 

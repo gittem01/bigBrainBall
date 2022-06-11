@@ -2,6 +2,7 @@
 
 #include <Player.h>
 #include <Ball.h>
+#include <PowerUp.h>
 #include <SDL_ttf.h>
 #include <string.h>
 #include <stdio.h>
@@ -298,11 +299,19 @@ public:
             go->render();
         }
 
+        for (PowerUp* p : PowerUp::aliveUps){
+            p->loop();
+        }
+        for (PowerUp* p : PowerUp::destroyUps){
+            delete(p);
+        }
+        PowerUp::destroyUps.clear();
+
         ball->render();
         
         goal1->render();
         goal2->render();
 
         SDL_RenderPresent(renderer);
-    }
+	}
 };
