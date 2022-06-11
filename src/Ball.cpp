@@ -42,10 +42,10 @@ int Ball::checkBallGoal(){
 void Ball::check(){
     b2Vec2 p = body->GetPosition();
     if (game->pointInRect(game->topRects[0], p) && abs(body->GetAngularVelocity()) < 5.0f){
-        body->SetAngularVelocity(+0.1f + body->GetAngle());
+        body->SetAngularVelocity(+0.1f + body->GetAngularVelocity());
     }
     else if (game->pointInRect(game->topRects[1], p) && abs(body->GetAngularVelocity()) < 5.0f){
-        body->SetAngularVelocity(-0.1f + body->GetAngle());
+        body->SetAngularVelocity(-0.1f + body->GetAngularVelocity());
     }
 
     long t = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
